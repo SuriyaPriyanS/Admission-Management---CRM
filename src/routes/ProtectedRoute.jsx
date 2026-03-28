@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAppSelector } from "../app/hooks";
 
-export function ProtectedRoute({ allowedRoles = [] }) {
+export function ProtectedRoute({ allowedRoles = [], children = null }) {
   const { token, user } = useAppSelector((state) => state.auth);
 
   if (!token || !user) {
@@ -12,6 +12,9 @@ export function ProtectedRoute({ allowedRoles = [] }) {
     return <Navigate to="/" replace />;
   }
 
+  if (children) {
+    return children;
+  }
+
   return <Outlet />;
 }
-

@@ -3,7 +3,7 @@
 ## Stack
 - React Router DOM (route-based screens)
 - Redux Toolkit + React Redux (global state/auth/data)
-- Tailwind CSS + reusable UI components
+- Tailwind CSS + shadcn/ui setup (`components.json`)
 
 ## Setup
 ```bash
@@ -26,6 +26,7 @@ VITE_API_URL=http://localhost:5000/api
 - `/programs` (ADMIN)
 - `/quotas` (ADMIN)
 - `/users/create` (ADMIN, create/register user after login)
+- `/register` (ADMIN alias route for create user screen)
 - `/applicants` (ADMIN, OFFICER)
 - `/allocation` (ADMIN, OFFICER)
 - `/confirmation` (ADMIN, OFFICER)

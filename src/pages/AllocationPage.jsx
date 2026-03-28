@@ -175,11 +175,18 @@ export function AllocationPage() {
             <form className="space-y-3" onSubmit={govForm.handleSubmit(allocate)}>
               <div>
                 <Label>Applicant</Label>
-                <Select {...govForm.register("applicantId", { required: true })} onChange={(event) => {
-                  const applicant = governmentApplicants.find((item) => item._id === event.target.value);
-                  govForm.setValue("quotaType", applicant?.quotaType || "KCET");
-                }}>
-                  <option value="">Select applicant</option>
+                <Select
+                  {...govForm.register("applicantId", { required: true })}
+                  onChange={(event) => {
+                    const applicantId = event.target.value;
+                    const applicant = governmentApplicants.find((item) => item._id === applicantId);
+                    govForm.setValue("applicantId", applicantId, { shouldValidate: true });
+                    govForm.setValue("quotaType", applicant?.quotaType || "KCET");
+                  }}
+                >
+                  <option value="" disabled>
+                    Select applicant
+                  </option>
                   {governmentApplicants.map((applicant) => (
                     <option key={applicant._id} value={applicant._id}>
                       {applicant.applicationNo} - {applicant.fullName} ({applicant.quotaType})
@@ -190,7 +197,9 @@ export function AllocationPage() {
               <div>
                 <Label>Program</Label>
                 <Select {...govForm.register("programId", { required: true })}>
-                  <option value="">Select program</option>
+                  <option value="" disabled>
+                    Select program
+                  </option>
                   {programs.map((program) => (
                     <option key={program._id} value={program._id}>
                       {program.code} - {program.name}
@@ -233,7 +242,9 @@ export function AllocationPage() {
               <div>
                 <Label>Applicant</Label>
                 <Select {...mgmtForm.register("applicantId", { required: true })}>
-                  <option value="">Select applicant</option>
+                  <option value="" disabled>
+                    Select applicant
+                  </option>
                   {managementApplicants.map((applicant) => (
                     <option key={applicant._id} value={applicant._id}>
                       {applicant.applicationNo} - {applicant.fullName}
@@ -244,7 +255,9 @@ export function AllocationPage() {
               <div>
                 <Label>Program</Label>
                 <Select {...mgmtForm.register("programId", { required: true })}>
-                  <option value="">Select program</option>
+                  <option value="" disabled>
+                    Select program
+                  </option>
                   {programs.map((program) => (
                     <option key={program._id} value={program._id}>
                       {program.code} - {program.name}

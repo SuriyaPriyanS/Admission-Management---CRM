@@ -33,35 +33,87 @@ export function AppRouter() {
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<Navigate to="/login" replace />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<RoleHomeRedirect />} />
-            </Route>
-          </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={["ADMIN", "MANAGEMENT"]} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-            </Route>
-          </Route>
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN", "MANAGEMENT"]}>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/institutions" element={<InstitutionsPage />} />
-              <Route path="/programs" element={<ProgramsPage />} />
-              <Route path="/quotas" element={<QuotasPage />} />
-              <Route path="/users/create" element={<RegisterUserPage />} />
-              <Route path="/register" element={<RegisterUserPage />} />
-            </Route>
-          </Route>
+              <Route
+                path="/institutions"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN"]}>
+                    <InstitutionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/programs"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN"]}>
+                    <ProgramsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quotas"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN"]}>
+                    <QuotasPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN"]}>
+                    <RegisterUserPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/users/create" element={<Navigate to="/register" replace />} />
 
-          <Route element={<ProtectedRoute allowedRoles={["ADMIN", "OFFICER"]} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/applicants" element={<ApplicantsPage />} />
-              <Route path="/allocation" element={<AllocationPage />} />
-              <Route path="/confirmation" element={<ConfirmationPage />} />
-              <Route path="/fees" element={<FeesPage />} />
+              <Route
+                path="/applicants"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN", "OFFICER"]}>
+                    <ApplicantsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/allocation"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN", "OFFICER"]}>
+                    <AllocationPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/confirmation"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN", "OFFICER"]}>
+                    <ConfirmationPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fees"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN", "OFFICER"]}>
+                    <FeesPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Route>
 

@@ -21,6 +21,12 @@ export function ProgramsPage() {
   const programs = useAppSelector((state) => state.data.programs);
 
   const [editingProgram, setEditingProgram] = useState(null);
+  const departmentOptions = departments
+    .map((dept) => ({
+      value: dept?._id || dept?.id || "",
+      label: `${dept?.name || "Department"}${dept?.code ? ` (${dept.code})` : ""}`,
+    }))
+    .filter((dept) => Boolean(dept.value));
 
   const form = useForm({
     defaultValues: {
@@ -43,6 +49,13 @@ export function ProgramsPage() {
     dispatch(loadMastersThunk());
   }, [dispatch]);
 
+  useEffect(() => {
+    const selectedDepartment = form.getValues("departmentId");
+    if (!editingProgram && !selectedDepartment && departmentOptions.length > 0) {
+      form.setValue("departmentId", departmentOptions[0].value, { shouldValidate: true });
+    }
+  }, [departmentOptions, editingProgram, form]);
+
   async function refresh() {
     await dispatch(loadMastersThunk());
   }
@@ -52,6 +65,11 @@ export function ProgramsPage() {
   }
 
   async function onSubmit(values) {
+    if (!values.departmentId) {
+      notify("Please select a department before creating program.", "error");
+      return;
+    }
+
     const payload = {
       departmentId: values.departmentId,
       name: values.name,
@@ -142,10 +160,15 @@ export function ProgramsPage() {
             <div>
               <Label>Department</Label>
               <Select {...form.register("departmentId", { required: true })}>
-                <option value="">Select department</option>
-                {departments.map((dept) => (
-                  <option key={dept._id} value={dept._id}>{dept.name} ({dept.code})</option>
-                ))}
+                {departmentOptions.length > 0 ? (
+                  departmentOptions.map((dept) => (
+                    <option key={dept.value} value={dept.value}>
+                      {dept.label}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No departments available</option>
+                )}
               </Select>
             </div>
             <div className="grid gap-3 md:grid-cols-2">

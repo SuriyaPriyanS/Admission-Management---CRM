@@ -1,20 +1,22 @@
 import {
+  FiActivity,
   FiBookOpen,
   FiCheckCircle,
   FiDollarSign,
   FiGrid,
+  FiKey,
   FiLayers,
   FiLogOut,
   FiMapPin,
+  FiEye,
   FiSettings,
   FiUserPlus,
   FiUsers,
 } from "react-icons/fi";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { clearMessage } from "../features/app/appSlice";
+import { showMessage } from "../features/app/appSlice";
 import { logout } from "../features/auth/authSlice";
-import { InfoBanner } from "../components/common/InfoBanner";
 import { Button } from "../components/ui/button";
 
 function getNavSections(role) {
@@ -47,7 +49,7 @@ function getNavSections(role) {
 
     sections.push({
       label: "Admin",
-      items: [{ to: "/users/create", label: "Create User", icon: FiUserPlus }],
+      items: [{ to: "/register", label: "Register User", icon: FiUserPlus }],
     });
 
     return sections;
@@ -97,7 +99,6 @@ export function AppLayout() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { message, messageType } = useAppSelector((state) => state.app);
   const navSections = getNavSections(user?.role);
 
   function handleLogout() {
@@ -106,10 +107,17 @@ export function AppLayout() {
   }
 
   const title = routeTitles[location.pathname] || "Admission Management";
+  const roleLabel =
+    user?.role === "ADMIN" ? "Admin" : user?.role === "OFFICER" ? "Admission Officer" : "Management";
+  const roleButtons = [
+    { key: "ADMIN", label: "Admin", icon: FiKey },
+    { key: "OFFICER", label: "Admission Officer", icon: FiActivity },
+    { key: "MANAGEMENT", label: "Management", icon: FiEye },
+  ];
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
-      <aside className="hidden w-[252px] min-w-[252px] flex-col border-r border-border bg-[#0d2333] md:flex">
+      <aside className="hidden w-[252px] min-w-[252px] flex-col border-r border-white/10 bg-[#0d2333] md:flex">
         <div className="border-b border-white/10 p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0a9b8c] to-[#07b5a2] text-lg shadow-lg shadow-[#0a9b8c]/35">
@@ -123,7 +131,7 @@ export function AppLayout() {
 
           <div className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
             <span className="h-2 w-2 rounded-full bg-lime-300" />
-            <span>{user?.role || "User"}</span>
+            <span>{roleLabel}</span>
           </div>
         </div>
 
@@ -159,7 +167,40 @@ export function AppLayout() {
         </div>
 
         <div className="border-t border-white/10 p-3">
-          <Button variant="outline" className="w-full border-white/20 text-white/80 hover:bg-white/10" onClick={handleLogout}>
+          <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[1.2px] text-white/30">
+            Switch Role
+          </p>
+          <div className="space-y-2">
+            {roleButtons.map((item) => {
+              const Icon = item.icon;
+              const isActive = user?.role === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
+                    isActive
+                      ? "border-white/15 bg-[#0d3045] text-[#0fd0bf]"
+                      : "border-white/10 text-white/50 hover:bg-white/5 hover:text-white/80"
+                  }`}
+                  onClick={() => {
+                    if (isActive) return;
+                    dispatch(logout());
+                    dispatch(showMessage({ message: `Logged out. Sign in as ${item.label}.`, type: "info" }));
+                    navigate("/login", { replace: true });
+                  }}
+                >
+                  <Icon size={14} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <Button
+            variant="outline"
+            className="mt-3 w-full border-white/20 text-white/80 hover:bg-white/10"
+            onClick={handleLogout}
+          >
             <FiLogOut className="mr-2" />
             Logout
           </Button>
@@ -167,8 +208,8 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex h-[58px] items-center border-b border-border bg-card px-6">
-          <h1 className="text-lg font-bold text-foreground">{title}</h1>
+        <header className="flex h-[58px] items-center border-b border-border bg-card px-4 md:px-6">
+          <h1 className="text-base font-bold text-foreground md:text-lg">{title}</h1>
           <div className="ml-auto">
             <span
               className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
@@ -179,7 +220,7 @@ export function AppLayout() {
                     : "border border-orange-500/20 bg-orange-100 text-orange-700"
               }`}
             >
-              {user?.role || "USER"}
+              {roleLabel}
             </span>
           </div>
         </header>
@@ -208,8 +249,7 @@ export function AppLayout() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <InfoBanner message={message} type={messageType} onClose={() => dispatch(clearMessage())} />
+        <div className="flex-1 overflow-y-auto p-3 md:p-6">
           <Outlet />
         </div>
       </div>

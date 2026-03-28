@@ -4,12 +4,11 @@ import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { showMessage } from "../features/app/appSlice";
 import { loadMastersThunk } from "../features/data/dataSlice";
 import { api, readError } from "../lib/api";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select } from "../components/ui/select";
-import { Badge } from "../components/ui/badge";
 
 const YEAR_STORAGE_KEY = "edumerge_academic_years";
 
@@ -29,6 +28,7 @@ export function InstitutionsPage() {
   const departments = useAppSelector((state) => state.data.departments);
 
   const [activeTab, setActiveTab] = useState("institutions");
+  const [activeModal, setActiveModal] = useState("");
   const [editingInstitution, setEditingInstitution] = useState(null);
   const [editingCampus, setEditingCampus] = useState(null);
   const [editingDepartment, setEditingDepartment] = useState(null);
@@ -52,34 +52,82 @@ export function InstitutionsPage() {
     await dispatch(loadMastersThunk());
   }
 
-  function pushMessage(message, type = "success") {
+  function notify(message, type = "success") {
     dispatch(showMessage({ message, type }));
+  }
+
+  function openModal(name) {
+    setActiveModal(name);
+  }
+
+  function closeModal() {
+    setActiveModal("");
+  }
+
+  function openInstitutionModal(institution = null) {
+    setEditingInstitution(institution);
+    institutionForm.reset({
+      code: institution?.code || "",
+      name: institution?.name || "",
+      jkCapLimit: institution?.jkCapLimit || 0,
+    });
+    openModal("institution");
+  }
+
+  function openCampusModal(campus = null) {
+    setEditingCampus(campus);
+    campusForm.reset({
+      institutionId: campus?.institutionId || "",
+      name: campus?.name || "",
+    });
+    openModal("campus");
+  }
+
+  function openDepartmentModal(department = null) {
+    setEditingDepartment(department);
+    departmentForm.reset({
+      campusId: department?.campusId || "",
+      name: department?.name || "",
+      code: department?.code || "",
+    });
+    openModal("department");
+  }
+
+  function openYearModal(year = null) {
+    setEditingYearId(year?.id || "");
+    yearForm.reset({
+      value: year?.value || "",
+      status: year?.status || "ACTIVE",
+    });
+    openModal("year");
   }
 
   async function saveInstitution(values) {
     try {
       if (editingInstitution) {
         await api.put(`/masters/institutions/${editingInstitution._id}`, values);
-        pushMessage("Institution updated");
+        notify("Institution updated");
       } else {
         await api.post("/masters/institutions", values);
-        pushMessage("Institution created");
+        notify("Institution created");
       }
+      closeModal();
       setEditingInstitution(null);
-      institutionForm.reset({ code: "", name: "", jkCapLimit: 0 });
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
-  async function removeInstitution(id) {
+  async function deleteInstitution(id) {
+    if (!confirm("Delete this institution?")) return;
+
     try {
       await api.delete(`/masters/institutions/${id}`);
-      pushMessage("Institution deleted");
+      notify("Institution deleted");
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
@@ -87,26 +135,28 @@ export function InstitutionsPage() {
     try {
       if (editingCampus) {
         await api.put(`/masters/campuses/${editingCampus._id}`, values);
-        pushMessage("Campus updated");
+        notify("Campus updated");
       } else {
         await api.post("/masters/campuses", values);
-        pushMessage("Campus created");
+        notify("Campus created");
       }
+      closeModal();
       setEditingCampus(null);
-      campusForm.reset({ institutionId: "", name: "" });
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
-  async function removeCampus(id) {
+  async function deleteCampus(id) {
+    if (!confirm("Delete this campus?")) return;
+
     try {
       await api.delete(`/masters/campuses/${id}`);
-      pushMessage("Campus deleted");
+      notify("Campus deleted");
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
@@ -114,26 +164,28 @@ export function InstitutionsPage() {
     try {
       if (editingDepartment) {
         await api.put(`/masters/departments/${editingDepartment._id}`, values);
-        pushMessage("Department updated");
+        notify("Department updated");
       } else {
         await api.post("/masters/departments", values);
-        pushMessage("Department created");
+        notify("Department created");
       }
+      closeModal();
       setEditingDepartment(null);
-      departmentForm.reset({ campusId: "", name: "", code: "" });
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
-  async function removeDepartment(id) {
+  async function deleteDepartment(id) {
+    if (!confirm("Delete this department?")) return;
+
     try {
       await api.delete(`/masters/departments/${id}`);
-      pushMessage("Department deleted");
+      notify("Department deleted");
       await refresh();
     } catch (error) {
-      pushMessage(readError(error), "error");
+      notify(readError(error), "error");
     }
   }
 
@@ -144,51 +196,52 @@ export function InstitutionsPage() {
           year.id === editingYearId ? { ...year, value: values.value, status: values.status } : year
         )
       );
-      setEditingYearId("");
-      yearForm.reset({ value: "", status: "ACTIVE" });
-      pushMessage("Academic year updated");
-      return;
+      notify("Academic year updated");
+    } else {
+      setYears((prev) => [
+        { id: crypto.randomUUID(), value: values.value, status: values.status },
+        ...prev,
+      ]);
+      notify("Academic year added");
     }
 
-    const entry = {
-      id: crypto.randomUUID(),
-      value: values.value,
-      status: values.status,
-    };
-    setYears((prev) => [entry, ...prev]);
-    yearForm.reset({ value: "", status: "ACTIVE" });
-    pushMessage("Academic year added");
-  }
-
-  function removeYear(id) {
-    setYears((prev) => prev.filter((item) => item.id !== id));
-    pushMessage("Academic year removed", "success");
-  }
-
-  function editYear(year) {
-    setEditingYearId(year.id);
-    yearForm.reset({
-      value: year.value,
-      status: year.status,
-    });
-  }
-
-  function cancelYearEdit() {
+    closeModal();
     setEditingYearId("");
     yearForm.reset({ value: "", status: "ACTIVE" });
   }
 
-  const campusLookup = useMemo(() => new Map(campuses.map((c) => [c._id, c.name])), [campuses]);
+  function deleteYear(id) {
+    if (!confirm("Delete this academic year?")) return;
+
+    setYears((prev) => prev.filter((item) => item.id !== id));
+    notify("Academic year deleted");
+  }
+
   const institutionLookup = useMemo(
-    () => new Map(institutions.map((i) => [i._id, i.name])),
+    () => new Map(institutions.map((institution) => [institution._id, institution.name])),
     [institutions]
   );
 
+  const campusLookup = useMemo(
+    () => new Map(campuses.map((campus) => [campus._id, campus.name])),
+    [campuses]
+  );
+
   return (
-    <section className="space-y-4">
-      <div className="rounded-lg bg-card p-4 shadow-warm">
-        <div className="mb-4 border-b border-border pb-2">
-          <div className="flex flex-wrap gap-2">
+    <section className="space-y-5">
+      <div className="section-header">
+        <div>
+          <h2 className="text-[26px] font-extrabold leading-none text-[#0d2333]">Institutions Setup</h2>
+          <p className="mt-2 text-[13px] text-[#8fa8c0]">Manage institutions, campuses and departments</p>
+        </div>
+        <Button className="h-10 w-full px-4 sm:w-auto sm:px-6" onClick={() => openInstitutionModal()}>
+          + Add Institution
+        </Button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-4 border-b border-border">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {[
               ["institutions", "Institutions"],
               ["campuses", "Campuses"],
@@ -199,10 +252,10 @@ export function InstitutionsPage() {
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key)}
-                className={`rounded-md px-3 py-2 text-sm ${
+                className={`whitespace-nowrap rounded-md px-4 py-2 text-sm ${
                   activeTab === key
-                    ? "border border-primary/30 bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {label}
@@ -212,263 +265,321 @@ export function InstitutionsPage() {
         </div>
 
         {activeTab === "institutions" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingInstitution ? "Edit Institution" : "Add Institution"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-3" onSubmit={institutionForm.handleSubmit(saveInstitution)}>
-                  <div>
-                    <Label>Code</Label>
-                    <Input {...institutionForm.register("code", { required: true })} />
-                  </div>
-                  <div>
-                    <Label>Name</Label>
-                    <Input {...institutionForm.register("name", { required: true })} />
-                  </div>
-                  <div>
-                    <Label>J&K Cap Limit</Label>
-                    <Input type="number" {...institutionForm.register("jkCapLimit")} />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit">{editingInstitution ? "Update" : "Save"}</Button>
-                    {editingInstitution && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingInstitution(null);
-                          institutionForm.reset({ code: "", name: "", jkCapLimit: 0 });
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Institutions List</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {institutions.map((inst) => (
-                  <div key={inst._id} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-                    <div>
-                      <p className="font-semibold">{inst.name}</p>
-                      <p className="text-xs text-muted-foreground mono">{inst.code}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge>{inst.jkCapLimit || 0} cap</Badge>
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setEditingInstitution(inst);
-                        institutionForm.reset({
-                          code: inst.code,
-                          name: inst.name,
-                          jkCapLimit: inst.jkCapLimit || 0,
-                        });
-                      }}>
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeInstitution(inst._id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          <div className="space-y-3">
+            <Button variant="outline" onClick={() => openInstitutionModal()}>
+              + Add Institution
+            </Button>
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="py-3 text-left">Code</th>
+                    <th className="py-3 text-left">Institution Name</th>
+                    <th className="py-3 text-left">J&K Cap</th>
+                    <th className="py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {institutions.map((institution) => (
+                    <tr key={institution._id} className="border-b border-border/80">
+                      <td className="py-3 font-semibold">{institution.code}</td>
+                      <td className="py-3">{institution.name}</td>
+                      <td className="py-3">
+                        <Badge>{institution.jkCapLimit || 0}</Badge>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openInstitutionModal(institution)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteInstitution(institution._id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {institutions.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                        No institutions available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {activeTab === "campuses" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingCampus ? "Edit Campus" : "Add Campus"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-3" onSubmit={campusForm.handleSubmit(saveCampus)}>
-                  <div>
-                    <Label>Institution</Label>
-                    <Select {...campusForm.register("institutionId", { required: true })}>
-                      <option value="">Select institution</option>
-                      {institutions.map((inst) => (
-                        <option key={inst._id} value={inst._id}>{inst.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Campus Name</Label>
-                    <Input {...campusForm.register("name", { required: true })} />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit">{editingCampus ? "Update" : "Save"}</Button>
-                    {editingCampus && (
-                      <Button type="button" variant="outline" onClick={() => {
-                        setEditingCampus(null);
-                        campusForm.reset({ institutionId: "", name: "" });
-                      }}>
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Campuses List</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {campuses.map((campus) => (
-                  <div key={campus._id} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-                    <div>
-                      <p className="font-semibold">{campus.name}</p>
-                      <p className="text-xs text-muted-foreground">{institutionLookup.get(campus.institutionId) || "Institution"}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setEditingCampus(campus);
-                        campusForm.reset({ institutionId: campus.institutionId, name: campus.name });
-                      }}>Edit</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeCampus(campus._id)}>Delete</Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          <div className="space-y-3">
+            <Button variant="outline" onClick={() => openCampusModal()}>
+              + Add Campus
+            </Button>
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="py-3 text-left">Campus Name</th>
+                    <th className="py-3 text-left">Institution</th>
+                    <th className="py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campuses.map((campus) => (
+                    <tr key={campus._id} className="border-b border-border/80">
+                      <td className="py-3 font-semibold">{campus.name}</td>
+                      <td className="py-3">{institutionLookup.get(campus.institutionId) || "-"}</td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openCampusModal(campus)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteCampus(campus._id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {campuses.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-muted-foreground">
+                        No campuses available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {activeTab === "departments" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingDepartment ? "Edit Department" : "Add Department"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-3" onSubmit={departmentForm.handleSubmit(saveDepartment)}>
-                  <div>
-                    <Label>Campus</Label>
-                    <Select {...departmentForm.register("campusId", { required: true })}>
-                      <option value="">Select campus</option>
-                      {campuses.map((campus) => (
-                        <option key={campus._id} value={campus._id}>{campus.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Department Name</Label>
-                    <Input {...departmentForm.register("name", { required: true })} />
-                  </div>
-                  <div>
-                    <Label>Department Code</Label>
-                    <Input {...departmentForm.register("code", { required: true })} />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit">{editingDepartment ? "Update" : "Save"}</Button>
-                    {editingDepartment && (
-                      <Button type="button" variant="outline" onClick={() => {
-                        setEditingDepartment(null);
-                        departmentForm.reset({ campusId: "", name: "", code: "" });
-                      }}>Cancel</Button>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Departments List</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {departments.map((department) => (
-                  <div key={department._id} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-                    <div>
-                      <p className="font-semibold">{department.name}</p>
-                      <p className="text-xs text-muted-foreground">{campusLookup.get(department.campusId) || "Campus"}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setEditingDepartment(department);
-                        departmentForm.reset({
-                          campusId: department.campusId,
-                          name: department.name,
-                          code: department.code,
-                        });
-                      }}>Edit</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeDepartment(department._id)}>Delete</Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          <div className="space-y-3">
+            <Button variant="outline" onClick={() => openDepartmentModal()}>
+              + Add Department
+            </Button>
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="py-3 text-left">Department</th>
+                    <th className="py-3 text-left">Code</th>
+                    <th className="py-3 text-left">Campus</th>
+                    <th className="py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departments.map((department) => (
+                    <tr key={department._id} className="border-b border-border/80">
+                      <td className="py-3 font-semibold">{department.name}</td>
+                      <td className="py-3">{department.code}</td>
+                      <td className="py-3">{campusLookup.get(department.campusId) || "-"}</td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openDepartmentModal(department)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteDepartment(department._id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {departments.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                        No departments available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {activeTab === "years" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingYearId ? "Edit Academic Year" : "Add Academic Year"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-3" onSubmit={yearForm.handleSubmit(saveYear)}>
-                  <div>
-                    <Label>Academic Year</Label>
-                    <Input placeholder="2026-27" {...yearForm.register("value", { required: true })} />
-                  </div>
-                  <div>
-                    <Label>Status</Label>
-                    <Select {...yearForm.register("status")}>
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="UPCOMING">UPCOMING</option>
-                      <option value="ARCHIVED">ARCHIVED</option>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit">{editingYearId ? "Update" : "Save"} Academic Year</Button>
-                    {editingYearId && (
-                      <Button type="button" variant="outline" onClick={cancelYearEdit}>
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Academic Years</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {years.map((year) => (
-                  <div key={year.id} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-                    <span className="mono">{year.value}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge tone={year.status === "ACTIVE" ? "success" : year.status === "UPCOMING" ? "warning" : "default"}>
-                        {year.status}
-                      </Badge>
-                      <Button size="sm" variant="outline" onClick={() => editYear(year)}>
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeYear(year.id)}>Delete</Button>
-                    </div>
-                  </div>
-                ))}
-                {years.length === 0 && <p className="text-sm text-muted-foreground">No years configured yet.</p>}
-              </CardContent>
-            </Card>
+          <div className="space-y-3">
+            <Button variant="outline" onClick={() => openYearModal()}>
+              + Add Academic Year
+            </Button>
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="py-3 text-left">Academic Year</th>
+                    <th className="py-3 text-left">Status</th>
+                    <th className="py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {years.map((year) => (
+                    <tr key={year.id} className="border-b border-border/80">
+                      <td className="py-3 font-semibold">{year.value}</td>
+                      <td className="py-3">
+                        <Badge tone={year.status === "ACTIVE" ? "success" : year.status === "UPCOMING" ? "warning" : "danger"}>
+                          {year.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openYearModal(year)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteYear(year.id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {years.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-muted-foreground">
+                        No academic years available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
+
+      {activeModal === "institution" && (
+        <div className="page-modal-overlay" onClick={closeModal}>
+          <div className="page-modal max-w-xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="modal-title">{editingInstitution ? "Edit Institution" : "Add Institution"}</h3>
+            <p className="modal-sub">Create institution master details.</p>
+
+            <form className="mt-4 space-y-3" onSubmit={institutionForm.handleSubmit(saveInstitution)}>
+              <div>
+                <Label>Code</Label>
+                <Input {...institutionForm.register("code", { required: true })} />
+              </div>
+              <div>
+                <Label>Institution Name</Label>
+                <Input {...institutionForm.register("name", { required: true })} />
+              </div>
+              <div>
+                <Label>J&K Cap Limit</Label>
+                <Input type="number" {...institutionForm.register("jkCapLimit")} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit">{editingInstitution ? "Update" : "Save"}</Button>
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeModal === "campus" && (
+        <div className="page-modal-overlay" onClick={closeModal}>
+          <div className="page-modal max-w-xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="modal-title">{editingCampus ? "Edit Campus" : "Add Campus"}</h3>
+            <p className="modal-sub">Create campus under an institution.</p>
+
+            <form className="mt-4 space-y-3" onSubmit={campusForm.handleSubmit(saveCampus)}>
+              <div>
+                <Label>Institution</Label>
+                <Select {...campusForm.register("institutionId", { required: true })}>
+                  <option value="">Select institution</option>
+                  {institutions.map((institution) => (
+                    <option key={institution._id} value={institution._id}>
+                      {institution.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Campus Name</Label>
+                <Input {...campusForm.register("name", { required: true })} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit">{editingCampus ? "Update" : "Save"}</Button>
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeModal === "department" && (
+        <div className="page-modal-overlay" onClick={closeModal}>
+          <div className="page-modal max-w-xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="modal-title">{editingDepartment ? "Edit Department" : "Add Department"}</h3>
+            <p className="modal-sub">Create department under a campus.</p>
+
+            <form className="mt-4 space-y-3" onSubmit={departmentForm.handleSubmit(saveDepartment)}>
+              <div>
+                <Label>Campus</Label>
+                <Select {...departmentForm.register("campusId", { required: true })}>
+                  <option value="">Select campus</option>
+                  {campuses.map((campus) => (
+                    <option key={campus._id} value={campus._id}>
+                      {campus.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Department Name</Label>
+                <Input {...departmentForm.register("name", { required: true })} />
+              </div>
+              <div>
+                <Label>Department Code</Label>
+                <Input {...departmentForm.register("code", { required: true })} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit">{editingDepartment ? "Update" : "Save"}</Button>
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeModal === "year" && (
+        <div className="page-modal-overlay" onClick={closeModal}>
+          <div className="page-modal max-w-xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="modal-title">{editingYearId ? "Edit Academic Year" : "Add Academic Year"}</h3>
+            <p className="modal-sub">Manage active and upcoming academic years.</p>
+
+            <form className="mt-4 space-y-3" onSubmit={yearForm.handleSubmit(saveYear)}>
+              <div>
+                <Label>Academic Year</Label>
+                <Input placeholder="2026-27" {...yearForm.register("value", { required: true })} />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select {...yearForm.register("status")}>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="UPCOMING">UPCOMING</option>
+                  <option value="ARCHIVED">ARCHIVED</option>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit">{editingYearId ? "Update" : "Save"}</Button>
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { api, readError } from "../lib/api";
 import { useAppDispatch } from "../app/hooks";
@@ -10,6 +11,13 @@ import { Select } from "../components/ui/select";
 
 export function RegisterUserPage() {
   const dispatch = useAppDispatch();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const roleOptions = [
+    { value: "OFFICER", label: "Admission Officer" },
+    { value: "MANAGEMENT", label: "Management" },
+  ];
+
   const form = useForm({
     defaultValues: {
       name: "",
@@ -20,7 +28,14 @@ export function RegisterUserPage() {
   });
 
   async function onSubmit(values) {
+    const isAllowedRole = roleOptions.some((role) => role.value === values.role);
+    if (!isAllowedRole) {
+      dispatch(showMessage({ message: "Please select a valid role.", type: "error" }));
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
       await api.post("/auth/register", values);
       dispatch(showMessage({ message: "User created successfully.", type: "success" }));
       form.reset({
@@ -31,6 +46,8 @@ export function RegisterUserPage() {
       });
     } catch (error) {
       dispatch(showMessage({ message: readError(error), type: "error" }));
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -57,15 +74,18 @@ export function RegisterUserPage() {
           <div>
             <Label>Role</Label>
             <Select {...form.register("role")}>
-              <option value="OFFICER">OFFICER</option>
-              <option value="MANAGEMENT">MANAGEMENT</option>
-              <option value="ADMIN">ADMIN</option>
+              {roleOptions.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
             </Select>
           </div>
-          <Button type="submit">Create User</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating User..." : "Create User"}
+          </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-

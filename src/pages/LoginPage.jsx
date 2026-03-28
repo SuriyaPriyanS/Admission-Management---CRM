@@ -2,19 +2,17 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { clearMessage, showMessage } from "../features/app/appSlice";
+import { showMessage } from "../features/app/appSlice";
 import { loginThunk } from "../features/auth/authSlice";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { InfoBanner } from "../components/common/InfoBanner";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { token, user, status, error } = useAppSelector((state) => state.auth);
-  const { message, messageType } = useAppSelector((state) => state.app);
 
   const form = useForm({
     defaultValues: {
@@ -51,7 +49,6 @@ export function LoginPage() {
           <CardDescription>Role-based routing using React Router and Redux auth state.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InfoBanner message={message} type={messageType} onClose={() => dispatch(clearMessage())} />
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <div>
               <Label>Email</Label>

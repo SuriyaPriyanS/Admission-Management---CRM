@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { api, readError } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select } from "../components/ui/select";
-import { InfoBanner } from "../components/common/InfoBanner";
 
 const roles = ["OFFICER", "MANAGEMENT"];
 
 export function PublicRegisterPage() {
   const navigate = useNavigate();
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("success");
   const [loading, setLoading] = useState(false);
 
   const form = useForm({
@@ -23,14 +21,13 @@ export function PublicRegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "OFFICER",
+      role: "",
     },
   });
 
   async function onSubmit(values) {
     if (values.password !== values.confirmPassword) {
-      setMessage("Passwords do not match");
-      setMessageType("error");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -42,8 +39,7 @@ export function PublicRegisterPage() {
         password: values.password,
         role: values.role,
       });
-      setMessage("Registration successful! Please login.");
-      setMessageType("success");
+      toast.success("Registration successful! Please login.");
       form.reset({
         name: "",
         email: "",
@@ -53,8 +49,12 @@ export function PublicRegisterPage() {
       });
       setTimeout(() => navigate("/login"), 2000);
     } catch (error) {
-      setMessage(readError(error));
-      setMessageType("error");
+      const message = readError(error);
+      if (message === "Access token is required") {
+        toast.error("Self-registration is disabled. Login as Admin and create users from Register User.");
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,6 @@ export function PublicRegisterPage() {
           <CardDescription>Register as a new user to access the admission system.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InfoBanner message={message} type={messageType} onClose={() => setMessage("")} />
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <div>
               <Label>Full Name</Label>
