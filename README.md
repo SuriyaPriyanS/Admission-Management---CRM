@@ -190,9 +190,8 @@ npm run dev
 ## Default Credentials
 
 After seeding the backend:
-- **Admin**: admin@edumerge.local / Admin@123
-- **Officer**: officer@edumerge.local / Officer@123
-- **Management**: management@edumerge.local / Manager@123
+- **Admin**: mani2@gmail.com / 12345678
+
 
 ## Role-Based Access
 
