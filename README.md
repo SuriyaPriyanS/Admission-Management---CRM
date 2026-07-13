@@ -262,6 +262,9 @@ After seeding the backend:
 4. Test all CRUD operations
 5. Ensure responsive design
 
+<img width="639" height="888" alt="image" src="https://github.com/user-attachments/assets/c862d387-f140-4cfc-a9f2-22c632f3a9fe" />
+
+
 ## License
 
 This project is proprietary software for educational institutions.
