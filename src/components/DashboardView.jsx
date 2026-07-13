@@ -1,6 +1,18 @@
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from "chart.js";
+import { Bar, Doughnut } from "react-chartjs-2";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export function DashboardView({ dashboard, onNewApplicant, onAllocate }) {
   if (!dashboard) {
@@ -13,6 +25,46 @@ export function DashboardView({ dashboard, onNewApplicant, onAllocate }) {
       </Card>
     );
   }
+
+  const quotaLabels = (dashboard.quotaWiseFilled || []).map((quota) => quota.quotaType);
+  const quotaFilled = (dashboard.quotaWiseFilled || []).map((quota) => quota.filled);
+  const quotaCapacity = (dashboard.quotaWiseFilled || []).map((quota) => quota.seats);
+
+  const quotaChartData = {
+    labels: quotaLabels,
+    datasets: [
+      {
+        label: "Filled",
+        data: quotaFilled,
+        backgroundColor: "rgba(184, 240, 0, 0.8)",
+        borderColor: "rgba(184, 240, 0, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Capacity",
+        data: quotaCapacity,
+        backgroundColor: "rgba(13, 35, 51, 0.7)",
+        borderColor: "rgba(13, 35, 51, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const admissionsChartData = {
+    labels: ["Admitted", "Remaining Seats", "Allocated"],
+    datasets: [
+      {
+        data: [
+          dashboard.totals.admitted || 0,
+          dashboard.totals.remainingSeats || 0,
+          dashboard.totals.allocated || 0,
+        ],
+        backgroundColor: ["#b8f000", "#2563eb", "#0d2333"],
+        borderColor: ["#d4ff4d", "#60a5fa", "#1a3548"],
+        borderWidth: 1,
+      },
+    ],
+  };
 
   return (
     <section className="space-y-4">
@@ -51,20 +103,47 @@ export function DashboardView({ dashboard, onNewApplicant, onAllocate }) {
             <CardTitle>Quota-wise Seat Status</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dashboard.quotaWiseFilled.map((quota) => {
-              const pct = quota.seats > 0 ? Math.round((quota.filled / quota.seats) * 100) : 0;
-              return (
-                <div key={quota.quotaType}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span>{quota.quotaType}</span>
-                    <span className="mono text-xs">{quota.filled}/{quota.seats}</span>
-                  </div>
-                  <div className="h-2 rounded bg-secondary">
-                    <div className="h-2 rounded bg-gradient-to-r from-primary to-accent" style={{ width: `${Math.min(pct, 100)}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+            {dashboard.quotaWiseFilled.length === 0 && <p className="text-sm text-muted-foreground">No quota data available.</p>}
+            {dashboard.quotaWiseFilled.length > 0 && (
+              <div className="h-72">
+                <Bar
+                  data={quotaChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { position: "top" },
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 },
+                      },
+                    },
+                  }}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Admissions Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="h-72">
+              <Doughnut
+                data={admissionsChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: "bottom" },
+                  },
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
 
